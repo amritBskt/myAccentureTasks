@@ -1,6 +1,6 @@
 import pytest
 import requests
-import src.main2 as my_functions
+import src.main as my_functions
 from Exceptions.my_exceptions import *
 from unittest.mock import patch, Mock
 
