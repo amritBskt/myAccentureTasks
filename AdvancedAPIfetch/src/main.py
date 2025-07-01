@@ -2,7 +2,7 @@ import requests
 import csv
 import os
 import time
-from Exceptions.my_exceptions import *
+from Exceptions.my_exceptions import ClientError, ServerError, RedirectionError, UnexpectedError
 from dotenv import load_dotenv
 import os
 
