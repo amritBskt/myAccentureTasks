@@ -76,3 +76,25 @@ def test_read_all_data_from_db_output(setup_in_memory_db, capsys):
     assert "Humidity: 70" in output
     assert "Temperature: 305" in output
     assert "Humidity: 65" in output
+
+def test_database_error_handling(monkeypatch, capsys):
+    def raise_db_error(_):
+        raise sqlite3.DatabaseError("Test DB error")
+
+    monkeypatch.setattr(readDB.sqlite3, "connect", raise_db_error)
+
+    read_all_data_from_db()
+    captured = capsys.readouterr()
+    assert "Database error while reading data: Test DB error" in captured.out
+
+
+def test_unexpected_exception_handling(monkeypatch, capsys):
+    def raise_general_error(_):
+        raise Exception("Unexpected test error")
+
+    monkeypatch.setattr(readDB.sqlite3, "connect", raise_general_error)
+
+    read_all_data_from_db()
+    captured = capsys.readouterr()
+    assert "Unexpected error while reading data: Unexpected test error" in captured.out
+

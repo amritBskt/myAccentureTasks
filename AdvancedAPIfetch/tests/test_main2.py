@@ -125,3 +125,48 @@ def test_retry_mechanism(mock_success_response):
 
         assert isinstance(result, dict)
         assert mock_post.call_count == 3
+
+def test_invalid_encoding_format():
+    with patch('requests.post') as mock_post:
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.json.return_value = {"main": {}, "weather": [{"description": "clear sky"}]}
+
+        mock_post.return_value = mock_response
+
+        with pytest.raises(Exception, match="Invalid encoding format"):
+            my_functions.fetch_weather()
+
+
+def test_missing_main_key_triggers_retry_then_fails():
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.headers = {"Content-Type": "application/json; charset=utf-8"}
+    mock_response.json.return_value = {"weather": [{"description": "sunny"}]}  # no 'main'
+
+    with patch('requests.post', return_value=mock_response):
+        with pytest.raises(Exception, match="Weather data not received"):
+            my_functions.fetch_weather(retries=2, delay=0)
+
+
+def test_network_error_final_attempt_raises():
+    with patch('requests.post', side_effect=requests.exceptions.RequestException):
+        with pytest.raises(Exception, match="Network error: after maximum retries"):
+            my_functions.fetch_weather(retries=2, delay=0)
+
+
+def test_main_timeout_handling(monkeypatch):
+    monkeypatch.setenv("API_KEY", "dummy")
+    with patch('src.main.fetch_weather', side_effect=requests.exceptions.Timeout):
+        with patch('builtins.print') as mock_print:
+            my_functions.main()
+            mock_print.assert_any_call("API call timed out")
+
+
+def test_main_general_exception(monkeypatch):
+    monkeypatch.setenv("API_KEY", "dummy")
+    with patch('src.main.fetch_weather', side_effect=Exception("General Error")):
+        with patch('builtins.print') as mock_print:
+            my_functions.main()
+            mock_print.assert_any_call("General Error")
